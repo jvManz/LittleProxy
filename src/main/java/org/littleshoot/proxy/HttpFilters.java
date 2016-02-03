@@ -245,9 +245,7 @@ public interface HttpFilters {
 	/**
 	 * Defines response in case of a gateway timeout situation
 	 * 
-	 * @param httpRequest
-	 *            used for information like url
 	 */
-	DefaultFullHttpResponse writeGatewayTimeoutResponse(HttpRequest httpRequest);
+	DefaultFullHttpResponse writeGatewayTimeoutResponse();
 
 }

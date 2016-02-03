@@ -104,22 +104,19 @@ public class HttpFiltersAdapter implements HttpFilters {
 	@Override
 	public DefaultFullHttpResponse writeBadGatewayResponse(HttpRequest httpRequest) {
 		String body = "Bad Gateway: " + httpRequest.getUri();
-		DefaultFullHttpResponse response = ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_GATEWAY, body);
-		return response;
+		return ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_GATEWAY, body);
 	}
 
 	@Override
 	public DefaultFullHttpResponse writeBadRequestResponse(HttpRequest httpRequest) {
 		String body = "Bad Request to URI: " + httpRequest.getUri();
-		DefaultFullHttpResponse response = ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST, body);
-		return response;
+		return ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST, body);
 	}
 
 	@Override
-	public DefaultFullHttpResponse writeGatewayTimeoutResponse(HttpRequest httpRequest) {
-		String body = "Gateway Timeout to URI: " + httpRequest.getUri();
-		DefaultFullHttpResponse response = ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.GATEWAY_TIMEOUT, body);
-		return response;
+	public DefaultFullHttpResponse writeGatewayTimeoutResponse() {
+		String body = "Gateway Timeout";
+		return ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.GATEWAY_TIMEOUT, body);
 	}
 
 }

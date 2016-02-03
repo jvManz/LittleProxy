@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.littleshoot.proxy.extras.SelfSignedSslEngineSource;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
+import org.littleshoot.proxy.impl.ResponseUtils;
 import org.littleshoot.proxy.test.HttpClientUtil;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.matchers.Times;
@@ -983,17 +984,20 @@ public class HttpFilterTest {
 
 		@Override
 		public DefaultFullHttpResponse writeBadGatewayResponse(HttpRequest httpRequest) {
-			return null;
+			String body = "Bad Gateway: " + httpRequest.getUri();
+			return ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_GATEWAY, body);
 		}
 
 		@Override
 		public DefaultFullHttpResponse writeBadRequestResponse(HttpRequest httpRequest) {
-			return null;
+			String body = "Bad Request to URI: " + httpRequest.getUri();
+			return ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST, body);
 		}
 
 		@Override
-		public DefaultFullHttpResponse writeGatewayTimeoutResponse(HttpRequest httpRequest) {
-			return null;
+		public DefaultFullHttpResponse writeGatewayTimeoutResponse() {
+			String body = "Gateway Timeout";
+			return ResponseUtils.responseFor(HttpVersion.HTTP_1_1, HttpResponseStatus.GATEWAY_TIMEOUT, body);
 		}
 	}
 }

@@ -1202,7 +1202,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 	 *         disconnected
 	 */
 	private boolean writeGatewayTimeout(HttpRequest httpRequest) {
-		DefaultFullHttpResponse response = currentFilters.writeGatewayTimeoutResponse(httpRequest);
+		DefaultFullHttpResponse response = currentFilters.writeGatewayTimeoutResponse();
 
 		if (httpRequest != null && ProxyUtils.isHEAD(httpRequest)) {
 			// don't allow any body content in response to a HEAD request
