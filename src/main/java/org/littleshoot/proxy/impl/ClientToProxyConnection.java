@@ -229,14 +229,14 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
 		// short-circuit requests that treat the proxy as the "origin" server,
 		// to avoid infinite loops
-		if (isRequestToOriginServer(httpRequest)) {
-			boolean keepAlive = writeBadRequest(httpRequest);
-			if (keepAlive) {
-				return AWAITING_INITIAL;
-			} else {
-				return DISCONNECT_REQUESTED;
-			}
-		}
+		// if (isRequestToOriginServer(httpRequest)) {
+		// boolean keepAlive = writeBadRequest(httpRequest);
+		// if (keepAlive) {
+		// return AWAITING_INITIAL;
+		// } else {
+		// return DISCONNECT_REQUESTED;
+		// }
+		// }
 
 		// Identify our server and chained proxy
 		String serverHostAndPort = identifyHostAndPort(httpRequest);
