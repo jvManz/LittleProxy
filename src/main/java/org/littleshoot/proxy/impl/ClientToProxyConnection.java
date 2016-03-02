@@ -227,8 +227,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 			}
 		}
 
-		// short-circuit requests that treat the proxy as the "origin" server,
-		// to avoid infinite loops
+		// //short-circuit requests that treat the proxy as the "origin" server,
+		// //to avoid infinite loops
 		// if (isRequestToOriginServer(httpRequest)) {
 		// boolean keepAlive = writeBadRequest(httpRequest);
 		// if (keepAlive) {
@@ -745,15 +745,15 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 		pipeline.addLast("decoder", new HttpRequestDecoder(8192, 8192 * 2, 8192 * 2));
 		pipeline.addLast("requestReadMonitor", requestReadMonitor);
 
+		pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
+		pipeline.addLast("encoder", new HttpResponseEncoder());
+		pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
+
 		// Enable aggregation for filtering if necessary
 		int numberOfBytesToBuffer = proxyServer.getFiltersSource().getMaximumRequestBufferSizeInBytes();
 		if (numberOfBytesToBuffer > 0) {
 			aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
 		}
-
-		pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
-		pipeline.addLast("encoder", new HttpResponseEncoder());
-		pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
 
 		pipeline.addLast("idle", new IdleStateHandler(0, 0, proxyServer.getIdleConnectionTimeout()));
 
