@@ -16,3 +16,6 @@ LittleProxy.pro
 /bin
 *.jks
 performance/site/
+/littleproxy_cert
+/pom.xml.releaseBackup
+/release.properties
