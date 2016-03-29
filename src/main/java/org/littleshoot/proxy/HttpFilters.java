@@ -1,12 +1,13 @@
 package org.littleshoot.proxy;
 
+import org.littleshoot.proxy.impl.ProxyUtils;
+
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
-
-import org.littleshoot.proxy.impl.ProxyUtils;
 
 /**
  * <p>
@@ -48,41 +49,66 @@ import org.littleshoot.proxy.impl.ProxyUtils;
  * 
  */
 public interface HttpFilters {
-    /**
-     * Filters requests on their way from the client to the proxy.
-     * 
-     * @param httpObject
-     * @return if you want to interrupted processing and return a response to
-     *         the client, return it here, otherwise return null to continue
-     *         processing as usual
-     */
-    HttpResponse requestPre(HttpObject httpObject);
+	/**
+	 * Filters requests on their way from the client to the proxy.
+	 * 
+	 * @param httpObject
+	 * @return if you want to interrupted processing and return a response to
+	 *         the client, return it here, otherwise return null to continue
+	 *         processing as usual
+	 */
+	HttpResponse requestPre(HttpObject httpObject);
 
-    /**
-     * Filters requests on their way from the proxy to the server.
-     * 
-     * @param httpObject
-     * @return if you want to interrupted processing and return a response to
-     *         the client, return it here, otherwise return null to continue
-     *         processing as usual
-     */
-    HttpResponse requestPost(HttpObject httpObject);
+	/**
+	 * Filters requests on their way from the proxy to the server.
+	 * 
+	 * @param httpObject
+	 * @return if you want to interrupted processing and return a response to
+	 *         the client, return it here, otherwise return null to continue
+	 *         processing as usual
+	 */
+	HttpResponse requestPost(HttpObject httpObject);
 
-    /**
-     * Filters responses on their way from the server to the proxy.
-     * 
-     * @param httpObject
-     * @return the modified (or unmodified) HttpObject. Returning null will
-     *         force a disconnect.
-     */
-    HttpObject responsePre(HttpObject httpObject);
+	/**
+	 * Filters responses on their way from the server to the proxy.
+	 * 
+	 * @param httpObject
+	 * @return the modified (or unmodified) HttpObject. Returning null will
+	 *         force a disconnect.
+	 */
+	HttpObject responsePre(HttpObject httpObject);
 
-    /**
-     * Filters responses on their way from the proxy to the client.
-     * 
-     * @param httpObject
-     * @return the modified (or unmodified) HttpObject. Returning null will
-     *         force a disconnect.
-     */
-    HttpObject responsePost(HttpObject httpObject);
+	/**
+	 * Filters responses on their way from the proxy to the client.
+	 * 
+	 * @param httpObject
+	 * @return the modified (or unmodified) HttpObject. Returning null will
+	 *         force a disconnect.
+	 */
+	HttpObject responsePost(HttpObject httpObject);
+
+	/**
+	 * Defines response in case of a bad gateway situation
+	 * 
+	 * @param httpRequest
+	 *            used for information like url
+	 */
+	DefaultFullHttpResponse writeBadGatewayResponse(HttpRequest httpRequest);
+
+	/**
+	 * Defines response in case of a bad request situation
+	 * 
+	 * @param httpRequest
+	 *            used for information like url
+	 */
+	DefaultFullHttpResponse writeBadRequestResponse(HttpRequest httpRequest);
+
+	/**
+	 * Defines response in case of a gateway timeout situation
+	 * 
+	 * @param httpRequest
+	 *            used for information like url
+	 */
+	DefaultFullHttpResponse writeGatewayTimeoutResponse();
+
 }

@@ -17,3 +17,6 @@ LittleProxy.pro
 /chain_proxy_keystore_2.jks
 /pom.xml.releaseBackup
 /release.properties
+/chain_proxy_keystore_1.jks
+/littleproxy_cert
+/littleproxy_keystore.jks

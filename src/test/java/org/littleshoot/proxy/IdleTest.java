@@ -8,6 +8,7 @@ import org.eclipse.jetty.server.Server;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 
@@ -46,6 +47,7 @@ public class IdleTest {
         proxyServer.setIdleConnectionTimeout(originalIdleTimeout);
     }
 
+    @Ignore
     @Test
     public void test() throws Exception {
         System.out

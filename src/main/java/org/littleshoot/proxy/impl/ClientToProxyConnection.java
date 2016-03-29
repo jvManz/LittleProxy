@@ -1,31 +1,15 @@
 package org.littleshoot.proxy.impl;
 
-import static org.littleshoot.proxy.impl.ConnectionState.*;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpRequest;
-import io.netty.handler.codec.http.HttpContent;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpObject;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
+import static org.littleshoot.proxy.impl.ConnectionState.AWAITING_CHUNK;
+import static org.littleshoot.proxy.impl.ConnectionState.AWAITING_INITIAL;
+import static org.littleshoot.proxy.impl.ConnectionState.AWAITING_PROXY_AUTHENTICATION;
+import static org.littleshoot.proxy.impl.ConnectionState.DISCONNECT_REQUESTED;
+import static org.littleshoot.proxy.impl.ConnectionState.NEGOTIATING_CONNECT;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +29,26 @@ import org.littleshoot.proxy.FullFlowContext;
 import org.littleshoot.proxy.HttpFilters;
 import org.littleshoot.proxy.ProxyAuthenticator;
 import org.littleshoot.proxy.SslEngineSource;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpObject;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 
 /**
  * <p>
@@ -373,7 +377,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
         protected Future<?> execute() {
             LOG.debug("Responding with CONNECT successful");
-            HttpResponse response = responseFor(HttpVersion.HTTP_1_1,
+            HttpResponse response = ResponseUtils.responseFor(HttpVersion.HTTP_1_1,
                     CONNECTION_ESTABLISHED);
             response.headers().set("Connection", "Keep-Alive");
             response.headers().set("Proxy-Connection", "Keep-Alive");
@@ -626,16 +630,16 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                 8192 * 2));
         pipeline.addLast("requestReadMonitor", requestReadMonitor);
 
+        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
+        pipeline.addLast("encoder", new HttpResponseEncoder());
+        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
+
         // Enable aggregation for filtering if necessary
         int numberOfBytesToBuffer = proxyServer.getFiltersSource()
                 .getMaximumRequestBufferSizeInBytes();
         if (numberOfBytesToBuffer > 0) {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
-
-        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
-        pipeline.addLast("encoder", new HttpResponseEncoder());
-        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
 
         pipeline.addLast(
                 "idle",
@@ -859,7 +863,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                 + "credentials (e.g., bad password), or your\n"
                 + "browser doesn't understand how to supply\n"
                 + "the credentials required.</p>\n" + "</body></html>\n";
-        DefaultFullHttpResponse response = responseFor(HttpVersion.HTTP_1_1,
+        DefaultFullHttpResponse response = ResponseUtils.responseFor(HttpVersion.HTTP_1_1,
                 HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, body);
         response.headers().set("Date", ProxyUtils.httpDate());
         response.headers().set("Proxy-Authenticate",
@@ -1046,9 +1050,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      * @param request
      */
     private void writeBadGateway(HttpRequest request) {
-        String body = "Bad Gateway: " + request.getUri();
-        DefaultFullHttpResponse response = responseFor(HttpVersion.HTTP_1_1,
-                HttpResponseStatus.BAD_GATEWAY, body);
+        DefaultFullHttpResponse response = currentFilters.writeBadGatewayResponse(request);
         response.headers().set(HttpHeaders.Names.CONNECTION, "close");
         write(response);
         disconnect();
@@ -1058,60 +1060,9 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      * Tells the client that the connection to the server timed out.
      */
     private void writeGatewayTimeout() {
-        String body = "Gateway Timeout";
-        DefaultFullHttpResponse response = responseFor(HttpVersion.HTTP_1_1,
-                HttpResponseStatus.GATEWAY_TIMEOUT, body);
+        DefaultFullHttpResponse response = currentFilters.writeGatewayTimeoutResponse();
         response.headers().set(HttpHeaders.Names.CONNECTION, "close");
         write(response);
-    }
-
-    /**
-     * Factory for {@link DefaultFullHttpResponse}s.
-     * 
-     * @param httpVersion
-     * @param status
-     * @param body
-     * @return
-     */
-    private DefaultFullHttpResponse responseFor(HttpVersion httpVersion,
-            HttpResponseStatus status, String body) {
-        byte[] bytes = body.getBytes(Charset.forName("UTF-8"));
-        ByteBuf content = Unpooled.copiedBuffer(bytes);
-        return responseFor(httpVersion, status, content, bytes.length);
-    }
-
-    /**
-     * Factory for {@link DefaultFullHttpResponse}s.
-     * 
-     * @param httpVersion
-     * @param status
-     * @param body
-     * @param contentLength
-     * @return
-     */
-    private DefaultFullHttpResponse responseFor(HttpVersion httpVersion,
-            HttpResponseStatus status, ByteBuf body, int contentLength) {
-        DefaultFullHttpResponse response = body != null ? new DefaultFullHttpResponse(
-                HttpVersion.HTTP_1_1, status, body)
-                : new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
-        if (body != null) {
-            response.headers().set(HttpHeaders.Names.CONTENT_LENGTH,
-                    contentLength);
-            response.headers().set("Content-Type", "text/html; charset=UTF-8");
-        }
-        return response;
-    }
-
-    /**
-     * Factory for {@link DefaultFullHttpResponse}s.
-     * 
-     * @param httpVersion
-     * @param status
-     * @return
-     */
-    private DefaultFullHttpResponse responseFor(HttpVersion httpVersion,
-            HttpResponseStatus status) {
-        return responseFor(httpVersion, status, (ByteBuf) null, 0);
     }
 
     /**

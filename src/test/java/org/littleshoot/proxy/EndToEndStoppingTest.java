@@ -119,7 +119,7 @@ public class EndToEndStoppingTest {
         // new HttpHost("75.101.134.244", PROXY_PORT));
         // new HttpHost("localhost", PROXY_PORT, "https"));
         HttpResponse response = client.execute(get);
-        assertEquals(200, response.getStatusLine().getStatusCode());
+        assertEquals(502, response.getStatusLine().getStatusCode());
         final HttpEntity entity = response.getEntity();
         final String body =
                 IOUtils.toString(entity.getContent()).toLowerCase();

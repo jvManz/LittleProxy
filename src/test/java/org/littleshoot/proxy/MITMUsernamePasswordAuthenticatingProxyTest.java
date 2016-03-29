@@ -1,5 +1,6 @@
 package org.littleshoot.proxy;
 
+import org.junit.Ignore;
 import org.littleshoot.proxy.extras.SelfSignedMitmManager;
 
 /**
@@ -22,4 +23,15 @@ public class MITMUsernamePasswordAuthenticatingProxyTest extends
     protected boolean isMITM() {
         return true;
     }
+    
+    @Ignore
+    @Override
+    public void testSimpleGetRequestOverHTTPS() throws Exception {
+    }
+
+    @Ignore
+    @Override
+    public void testSimplePostRequestOverHTTPS() throws Exception {
+    }
+    
 }
