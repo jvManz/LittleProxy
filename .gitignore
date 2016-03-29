@@ -14,3 +14,6 @@ jmeter.log
 lib/
 LittleProxy.pro
 /bin
+/chain_proxy_keystore_2.jks
+/pom.xml.releaseBackup
+/release.properties
