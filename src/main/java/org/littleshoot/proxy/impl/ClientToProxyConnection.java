@@ -600,13 +600,17 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     @Override
     protected void exceptionCaught(Throwable cause) {
         String message = "Caught an exception on ClientToProxyConnection";
-        boolean shouldWarn = cause instanceof ClosedChannelException ||
-                cause.getMessage().contains("Connection reset by peer") ||
-                cause.getMessage().contains("Die Verbindung wurde vom Kommunikationspartner zurückgesetzt"); 
-        if (shouldWarn) {
-            LOG.warn(message, cause);
+        boolean shouldIgnore = cause.getMessage().contains("Die Verbindung wurde vom Kommunikationspartner zurückgesetzt");
+        if(shouldIgnore) {
+        	// ignore
         } else {
-            LOG.error(message, cause);
+	        boolean shouldWarn = cause instanceof ClosedChannelException ||
+	                cause.getMessage().contains("Connection reset by peer"); 
+	        if (shouldWarn) {
+	            LOG.warn(message, cause);
+	        } else {
+	            LOG.error(message, cause);
+	        }
         }
         disconnect();
     }
